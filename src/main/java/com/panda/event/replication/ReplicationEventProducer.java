@@ -122,12 +122,12 @@ public class ReplicationEventProducer implements Closeable {
         this.replicationEventHandler = replicationEventHandler;
     }
 
-    private boolean shouldProcessMessage(String msg) {
-        return !msg.matches("\\{[\\s\\S]*\"change\":\\s*\\[\\s*\\]\\s*\\}$");
-    }
-
     @Override
     public void close() throws IOException {
+        stop();
+    }
 
+    private boolean shouldProcessMessage(String msg) {
+        return !msg.matches("\\{[\\s\\S]*\"change\":\\s*\\[\\s*\\]\\s*\\}$");
     }
 }

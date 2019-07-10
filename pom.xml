@@ -11,6 +11,7 @@
     <properties>
         <postgresql.jdbc.ver>42.2.5</postgresql.jdbc.ver>
         <slf4j.ver>1.7.26</slf4j.ver>
+        <java.version>11</java.version>
     </properties>
 
     <dependencies>
