@@ -1,7 +1,7 @@
 package com.panda.event.replication;
 
 import com.google.gson.Gson;
-import com.panda.event.replication.dto.json.ChangeEvent;
+import com.panda.event.dto.json.ChangeEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

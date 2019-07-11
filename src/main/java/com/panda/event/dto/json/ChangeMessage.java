@@ -1,4 +1,4 @@
-package com.panda.event.replication.dto.json;
+package com.panda.event.dto.json;
 
 import com.google.gson.annotations.SerializedName;
 

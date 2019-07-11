@@ -1,4 +1,4 @@
-package com.panda.event.replication.dto;
+package com.panda.event.dto;
 
 public class Change<T> {
     private ChangeType type;

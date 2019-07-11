@@ -1,4 +1,4 @@
-package com.panda.event.replication.dto;
+package com.panda.event.dto;
 
 public enum ChangeType {
     INSERT, UPDATE, DELETE;
