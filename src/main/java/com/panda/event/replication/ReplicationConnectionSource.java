@@ -29,7 +29,7 @@ public class ReplicationConnectionSource implements Closeable {
 
     //todo rewrite, use proxy to catch exceptions and invalidate connection
     public PGConnection getConnection(boolean reconnect) throws SQLException {
-        if (reconnect) {
+        if (reconnect || reconnectRequired) {
             closeConnection();
             reconnectRequired = true;
         }
@@ -40,10 +40,10 @@ public class ReplicationConnectionSource implements Closeable {
     }
 
     public PGConnection getConnection() throws SQLException {
-        return getConnection();
+        return getConnection(false);
     }
 
-    public void invalidateConnection(){
+    public void invalidateConnection() {
         reconnectRequired = true;
     }
 

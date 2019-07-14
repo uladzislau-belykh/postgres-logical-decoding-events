@@ -15,22 +15,26 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Instant;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class ReplicationStream implements Closeable {
 
-    private static final Logger logger = LoggerFactory.getLogger(ReplicationStream.class);
     public static final String OUTPUT_PLUGIN = "wal2json";
+
+    private static final Logger logger = LoggerFactory.getLogger(ReplicationStream.class);
 
     private String slotName;
     private ReplicationConnectionSource replicationConnectionSource;
     private DataSource connectionSource;
     private PGReplicationStream stream;
+    private List<String> tables;
 
-    public ReplicationStream(String slotName, ReplicationConnectionSource replicationConnectionSource, DataSource connectionSource) {
+    public ReplicationStream(String slotName, ReplicationConnectionSource replicationConnectionSource, DataSource connectionSource, List<String> tables) {
         this.slotName = slotName;
         this.replicationConnectionSource = replicationConnectionSource;
         this.connectionSource = connectionSource;
+        this.tables = tables;
     }
 
     public ReplicationEvent receive() {
@@ -139,7 +143,7 @@ public class ReplicationStream implements Closeable {
                 .withSlotOption("include-timestamp", true)
                 .withSlotOption("include-types", false)
 //                .withSlotOption("include-unchanged-toast", false)
-                .withSlotOption("add-tables", "public.worklog")
+                .withSlotOption("add-tables", String.join(", ", this.tables))
                 .withStatusInterval(15, TimeUnit.SECONDS)
                 .start();
     }
