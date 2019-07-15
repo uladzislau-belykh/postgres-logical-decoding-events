@@ -2,6 +2,7 @@ package com.panda.event.replication;
 
 import com.google.gson.Gson;
 import com.panda.event.dto.json.ChangeEvent;
+import org.postgresql.replication.LogSequenceNumber;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,14 +79,20 @@ public class ReplicationEventProducer implements Closeable {
 
         try {
             String message = replicationEvent.getMessage();
+
+            ChangeEvent changes = null;
             if (shouldProcessMessage(message)) {
-                ChangeEvent changes = gson.fromJson(message, ChangeEvent.class);
+                changes = gson.fromJson(message, ChangeEvent.class);
                 if (changes.getChanges().isEmpty()) {
                     return false;
                 }
                 replicationEventHandler.handle(changes);
             }
-            replicationStream.commit(replicationEvent.getLastReceiveLSN());
+            LogSequenceNumber nextLsn = null;
+            if(changes!=null){
+                nextLsn = LogSequenceNumber.valueOf(changes.getNextLsn());
+            }
+            replicationStream.commit(replicationEvent.getLastReceiveLSN(), nextLsn);
         } catch (Exception e) {
             logger.debug("Replication message handling throw error", e);
             replicationStream.resetUncomitted();

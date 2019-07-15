@@ -10,13 +10,24 @@ public class ChangeEvent {
     private String commitTime;
     @SerializedName("change")
     private List<ChangeMessage> changes;
+    @SerializedName("nextlsn")
+    private String nextLsn;
 
-    public ChangeEvent(String commitTime, List<ChangeMessage> changes) {
+    public ChangeEvent(String commitTime, List<ChangeMessage> changes, String nextLsn) {
         this.commitTime = commitTime;
         this.changes = changes;
+        this.nextLsn = nextLsn;
     }
 
     public ChangeEvent() {
+    }
+
+    public String getNextLsn() {
+        return nextLsn;
+    }
+
+    public void setNextLsn(String nextLsn) {
+        this.nextLsn = nextLsn;
     }
 
     public List<ChangeMessage> getChanges() {
@@ -38,8 +49,9 @@ public class ChangeEvent {
     @Override
     public String toString() {
         return "ChangeEvent{" +
-                "commitTime=" + commitTime +
+                "commitTime='" + commitTime + '\'' +
                 ", changes=" + changes +
+                ", nextLsn=" + nextLsn +
                 '}';
     }
 }

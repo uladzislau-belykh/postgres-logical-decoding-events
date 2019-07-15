@@ -61,16 +61,16 @@ public class ReplicationStream implements Closeable {
         }
     }
 
-    public boolean commit(LogSequenceNumber lsn) {
-        streamHolder.commit(lsn);
+    public boolean commit(LogSequenceNumber lastReceiveLSN, LogSequenceNumber nextLsn) {
+        streamHolder.commitNextLsn(nextLsn);
         PGReplicationStream stream;
         try {
             stream = streamHolder.getStream();
         } catch (SQLException e) {
             return false;
         }
-        stream.setAppliedLSN(lsn);
-        stream.setFlushedLSN(lsn);
+        stream.setAppliedLSN(lastReceiveLSN);
+        stream.setFlushedLSN(lastReceiveLSN);
         return silentlyUpdateStatus(stream);
     }
 
@@ -170,7 +170,7 @@ public class ReplicationStream implements Closeable {
         private List<String> tables;
         private ReplicationConnectionSource replicationConnectionSource;
         private String slotName;
-        private LogSequenceNumber lastCommitedLsn;
+        private LogSequenceNumber nextLsn;
 
         public ReplicationStreamSource(String slotName, ReplicationConnectionSource replicationConnectionSource, List<String> tables) {
             this.tables = tables;
@@ -193,14 +193,15 @@ public class ReplicationStream implements Closeable {
                     .replicationStream()
                     .logical()
                     .withSlotName(this.slotName);
-            if(lastCommitedLsn!=null && !lastCommitedLsn.equals(LogSequenceNumber.INVALID_LSN) ){
-                streamBuilder.withStartPosition(lastCommitedLsn);
+            if(nextLsn !=null && !nextLsn.equals(LogSequenceNumber.INVALID_LSN) ){
+                streamBuilder.withStartPosition(nextLsn);
             }
             return streamBuilder
                     .withSlotOption("include-xids", true)
                     .withSlotOption("pretty-print", true)
                     .withSlotOption("include-timestamp", true)
                     .withSlotOption("include-types", false)
+                    .withSlotOption("include-lsn", true)
 //                .withSlotOption("include-unchanged-toast", false)
                     .withSlotOption("add-tables", String.join(", ", this.tables))
                     .withStatusInterval(15, TimeUnit.SECONDS)
@@ -213,8 +214,8 @@ public class ReplicationStream implements Closeable {
             }
         }
 
-        public void commit(LogSequenceNumber lsn) {
-            this.lastCommitedLsn = lsn;
+        public void commitNextLsn(LogSequenceNumber lsn) {
+            this.nextLsn = lsn;
         }
     }
 }
