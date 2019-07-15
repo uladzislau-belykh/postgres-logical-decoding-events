@@ -31,11 +31,11 @@ public class ReplicationEventProducer implements Closeable {
     }
 
     public void start(Long timeout, ExecutorService executorService) {
-        if (producer != null) {
+        if (this.producer != null) {
             throw new RuntimeException("Producer is running");
         }
-        producing = true;
-        CompletableFuture.runAsync(() -> {
+        this.producing = true;
+        this.producer = CompletableFuture.runAsync(() -> {
             try {
                 if (!slotExists()) {
                     createSlot();
@@ -45,15 +45,15 @@ public class ReplicationEventProducer implements Closeable {
             }
 
             try {
-                while (producing) {
+                while (this.producing) {
                     boolean isProduced = produce();
                     if (!isProduced) {
                         Thread.sleep(timeout);
                     }
                 }
-            }catch (InterruptedException e){
-                producing = false;
-                producer = null;
+            } catch (InterruptedException e) {
+                this.producing = false;
+                this.producer = null;
                 logger.error("Producer was interrupted", e);
             }
         });
