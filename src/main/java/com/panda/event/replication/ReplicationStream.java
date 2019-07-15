@@ -29,12 +29,14 @@ public class ReplicationStream implements Closeable {
     private DataSource connectionSource;
     private PGReplicationStream stream;
     private List<String> tables;
+    private volatile boolean reconnectRequired = true;
 
     public ReplicationStream(String slotName, ReplicationConnectionSource replicationConnectionSource, DataSource connectionSource, List<String> tables) {
         this.slotName = slotName;
         this.replicationConnectionSource = replicationConnectionSource;
         this.connectionSource = connectionSource;
         this.tables = tables;
+        replicationConnectionSource.registerSubscriber(() -> this.reconnectRequired = true);
     }
 
     public ReplicationEvent receive() {
@@ -127,7 +129,7 @@ public class ReplicationStream implements Closeable {
 
     private PGReplicationStream getStream() throws SQLException {
         PGConnection connection = replicationConnectionSource.getConnection();
-        if (stream == null || stream.isClosed()) {
+        if (stream == null || stream.isClosed() || reconnectRequired) {
             stream = createReplicationStream(connection);
         }
         return stream;

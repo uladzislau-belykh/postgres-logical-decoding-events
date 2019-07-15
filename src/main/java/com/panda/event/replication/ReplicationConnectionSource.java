@@ -10,7 +10,9 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.HashSet;
 import java.util.Properties;
+import java.util.Set;
 
 public class ReplicationConnectionSource implements Closeable {
     private static final Logger logger = LoggerFactory.getLogger(ReplicationEventProducer.class);
@@ -20,6 +22,7 @@ public class ReplicationConnectionSource implements Closeable {
     private String password;
     private Connection connection;
     private boolean reconnectRequired = true;
+    private Set<Runnable> reconnectSubscribers = new HashSet<>();
 
     public ReplicationConnectionSource(String jdbcUrl, String username, String password) {
         this.jdbcUrl = jdbcUrl;
@@ -35,6 +38,8 @@ public class ReplicationConnectionSource implements Closeable {
         }
         if (reconnectRequired || (connection != null && connection.isClosed()) || connection == null) {
             connection = createReplicationConnection();
+            sendEvent();
+            reconnectRequired = false;
         }
         return connection.unwrap(PGConnection.class);
     }
@@ -55,6 +60,18 @@ public class ReplicationConnectionSource implements Closeable {
         PGProperty.REPLICATION.set(props, "database");
         PGProperty.PREFER_QUERY_MODE.set(props, "simple");
         return DriverManager.getConnection(jdbcUrl, props);
+    }
+
+    public void registerSubscriber(Runnable callback){
+        reconnectSubscribers.add(callback);
+    }
+
+    public void unregisterSubscriber(Runnable callback){
+        reconnectSubscribers.remove(callback);
+    }
+
+    private void sendEvent() {
+        reconnectSubscribers.forEach(runnable -> runnable.run());
     }
 
     private void closeConnection() throws SQLException {
