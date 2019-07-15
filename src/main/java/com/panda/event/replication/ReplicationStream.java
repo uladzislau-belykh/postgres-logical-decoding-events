@@ -62,7 +62,9 @@ public class ReplicationStream implements Closeable {
     }
 
     public boolean commit(LogSequenceNumber lastReceiveLSN, LogSequenceNumber nextLsn) {
-        streamHolder.commitNextLsn(nextLsn);
+        if (nextLsn != null) {
+            streamHolder.commitNextLsn(nextLsn);
+        }
         PGReplicationStream stream;
         try {
             stream = streamHolder.getStream();
@@ -193,7 +195,7 @@ public class ReplicationStream implements Closeable {
                     .replicationStream()
                     .logical()
                     .withSlotName(this.slotName);
-            if(nextLsn !=null && !nextLsn.equals(LogSequenceNumber.INVALID_LSN) ){
+            if (nextLsn != null && !nextLsn.equals(LogSequenceNumber.INVALID_LSN)) {
                 streamBuilder.withStartPosition(nextLsn);
             }
             return streamBuilder
