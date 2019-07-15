@@ -131,6 +131,7 @@ public class ReplicationStream implements Closeable {
         PGConnection connection = replicationConnectionSource.getConnection();
         if (stream == null || stream.isClosed() || reconnectRequired) {
             stream = createReplicationStream(connection);
+            reconnectRequired = false;
         }
         return stream;
     }
