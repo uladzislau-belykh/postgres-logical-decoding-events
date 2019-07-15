@@ -36,7 +36,7 @@ public class EventQueueHolder implements Closeable {
     }
 
     public void init() {
-        if (queues != null) {
+        if (queues == null) {
             this.queues = new ArrayList<>();
             for (int i = 0; i < queueCount; i++) {
                 queues.add(new EventQueue(handlers, executor));

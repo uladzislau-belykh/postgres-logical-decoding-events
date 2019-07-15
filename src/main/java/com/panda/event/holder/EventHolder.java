@@ -38,7 +38,7 @@ public class EventHolder implements Closeable {
         semaphore.release();
     }
 
-    public void init(){
+    public void init() {
         for (EventQueueHolder value : holders.values()) {
             value.init();
         }
@@ -57,8 +57,8 @@ public class EventHolder implements Closeable {
     }
 
     public void registerHandler(String table, EventHandler handler) {
-        holders.getOrDefault(table, new EventQueueHolder(table, 1, new SimpleEventQueueResolver()))
-                .registerHandler(handler);
+        holders.putIfAbsent(table, new EventQueueHolder(table, 1, new SimpleEventQueueResolver()));
+        holders.get(table).registerHandler(handler);
     }
 
     public void unregisterHandler(String table, EventHandler handler) {

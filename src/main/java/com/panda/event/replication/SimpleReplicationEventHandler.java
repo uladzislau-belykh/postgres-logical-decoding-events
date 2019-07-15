@@ -1,11 +1,11 @@
 package com.panda.event.replication;
 
 import com.google.gson.Gson;
-import com.panda.event.holder.EventHolder;
 import com.panda.event.dto.Change;
 import com.panda.event.dto.ChangeType;
 import com.panda.event.dto.json.ChangeEvent;
 import com.panda.event.dto.json.ChangeMessage;
+import com.panda.event.holder.EventHolder;
 
 import java.util.HashMap;
 import java.util.List;
@@ -20,9 +20,6 @@ public class SimpleReplicationEventHandler implements ReplicationEventHandler{
 
     public SimpleReplicationEventHandler(EventHolder eventsHolder) {
         this.eventsHolder = eventsHolder;
-    }
-
-    public SimpleReplicationEventHandler() {
     }
 
     @Override
