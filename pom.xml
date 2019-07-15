@@ -8,6 +8,8 @@
     <artifactId>postgres-logical-decoding-events</artifactId>
     <version>0.0.1-SNAPSHOT</version>
 
+    <url>https://github.com/PandaXz/postgres-logical-decoding-events</url>
+
     <properties>
         <postgresql.jdbc.ver>42.2.5</postgresql.jdbc.ver>
         <slf4j.ver>1.7.26</slf4j.ver>
