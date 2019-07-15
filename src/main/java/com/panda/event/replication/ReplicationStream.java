@@ -3,6 +3,7 @@ package com.panda.event.replication;
 import org.postgresql.PGConnection;
 import org.postgresql.replication.LogSequenceNumber;
 import org.postgresql.replication.PGReplicationStream;
+import org.postgresql.replication.fluent.logical.ChainedLogicalStreamBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,23 +28,20 @@ public class ReplicationStream implements Closeable {
     private String slotName;
     private ReplicationConnectionSource replicationConnectionSource;
     private DataSource connectionSource;
-    private PGReplicationStream stream;
-    private List<String> tables;
-    private volatile boolean reconnectRequired = true;
+    private ReplicationStreamSource streamHolder;
 
     public ReplicationStream(String slotName, ReplicationConnectionSource replicationConnectionSource, DataSource connectionSource, List<String> tables) {
         this.slotName = slotName;
         this.replicationConnectionSource = replicationConnectionSource;
         this.connectionSource = connectionSource;
-        this.tables = tables;
-        replicationConnectionSource.registerSubscriber(() -> this.reconnectRequired = true);
+        this.streamHolder = new ReplicationStreamSource(slotName, replicationConnectionSource, tables);
     }
 
     public ReplicationEvent receive() {
         logger.debug("Receive message");
         try {
             ByteBuffer buffer;
-            PGReplicationStream stream = getStream();
+            PGReplicationStream stream = streamHolder.getStream();
             buffer = stream.readPending();
             Instant readTime = Instant.now();
             LogSequenceNumber lastReceiveLSN = stream.getLastReceiveLSN();
@@ -64,6 +62,13 @@ public class ReplicationStream implements Closeable {
     }
 
     public boolean commit(LogSequenceNumber lsn) {
+        streamHolder.commit(lsn);
+        PGReplicationStream stream;
+        try {
+            stream = streamHolder.getStream();
+        } catch (SQLException e) {
+            return false;
+        }
         stream.setAppliedLSN(lsn);
         stream.setFlushedLSN(lsn);
         return silentlyUpdateStatus(stream);
@@ -127,31 +132,6 @@ public class ReplicationStream implements Closeable {
         return false;
     }
 
-    private PGReplicationStream getStream() throws SQLException {
-        PGConnection connection = replicationConnectionSource.getConnection();
-        if (stream == null || stream.isClosed() || reconnectRequired) {
-            stream = createReplicationStream(connection);
-            reconnectRequired = false;
-        }
-        return stream;
-    }
-
-    private PGReplicationStream createReplicationStream(PGConnection connection) throws SQLException {
-        return connection.getReplicationAPI()
-                .replicationStream()
-                .logical()
-                .withSlotName(slotName)
-                .withSlotOption("include-xids", true)
-                .withSlotOption("pretty-print", true)
-                .withSlotOption("include-timestamp", true)
-                .withSlotOption("include-types", false)
-//                .withSlotOption("include-unchanged-toast", false)
-                .withSlotOption("add-tables", String.join(", ", this.tables))
-                .withStatusInterval(15, TimeUnit.SECONDS)
-                .start();
-    }
-
-
     public void setSlotName(String slotName) {
         this.slotName = slotName;
     }
@@ -179,14 +159,62 @@ public class ReplicationStream implements Closeable {
     @Override
     public void close() throws IOException {
         try {
-            closeStream();
+            streamHolder.closeStream();
         } catch (SQLException e) {
         }
     }
 
-    private void closeStream() throws SQLException {
-        if (stream != null && !stream.isClosed()) {
-            stream.close();
+    private class ReplicationStreamSource {
+        private PGReplicationStream stream;
+        private volatile boolean reconnectRequired = true;
+        private List<String> tables;
+        private ReplicationConnectionSource replicationConnectionSource;
+        private String slotName;
+        private LogSequenceNumber lastCommitedLsn;
+
+        public ReplicationStreamSource(String slotName, ReplicationConnectionSource replicationConnectionSource, List<String> tables) {
+            this.tables = tables;
+            this.replicationConnectionSource = replicationConnectionSource;
+            this.replicationConnectionSource.registerSubscriber(() -> this.reconnectRequired = true);
+            this.slotName = slotName;
+        }
+
+        public PGReplicationStream getStream() throws SQLException {
+            PGConnection connection = this.replicationConnectionSource.getConnection();
+            if (this.stream == null || this.stream.isClosed() || this.reconnectRequired) {
+                this.stream = createReplicationStream(connection);
+                this.reconnectRequired = false;
+            }
+            return this.stream;
+        }
+
+        private PGReplicationStream createReplicationStream(PGConnection connection) throws SQLException {
+            ChainedLogicalStreamBuilder streamBuilder = connection.getReplicationAPI()
+                    .replicationStream()
+                    .logical()
+                    .withSlotName(this.slotName);
+            if(lastCommitedLsn!=null && !lastCommitedLsn.equals(LogSequenceNumber.INVALID_LSN) ){
+                streamBuilder.withStartPosition(lastCommitedLsn);
+            }
+            return streamBuilder
+                    .withSlotOption("include-xids", true)
+                    .withSlotOption("pretty-print", true)
+                    .withSlotOption("include-timestamp", true)
+                    .withSlotOption("include-types", false)
+//                .withSlotOption("include-unchanged-toast", false)
+                    .withSlotOption("add-tables", String.join(", ", this.tables))
+                    .withStatusInterval(15, TimeUnit.SECONDS)
+                    .start();
+        }
+
+        public void closeStream() throws SQLException {
+            if (stream != null && !stream.isClosed()) {
+                stream.close();
+            }
+        }
+
+        public void commit(LogSequenceNumber lsn) {
+            this.lastCommitedLsn = lsn;
         }
     }
 }
