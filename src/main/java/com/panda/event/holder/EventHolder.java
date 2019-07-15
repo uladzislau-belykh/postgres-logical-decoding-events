@@ -38,6 +38,12 @@ public class EventHolder implements Closeable {
         semaphore.release();
     }
 
+    public void init(){
+        for (EventQueueHolder value : holders.values()) {
+            value.init();
+        }
+    }
+
     public void registerHolder(String table, int queueCount, EventQueueResolver resolver) {
         holders.put(table, new EventQueueHolder(table, queueCount, resolver));
     }
