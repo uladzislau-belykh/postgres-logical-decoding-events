@@ -12,7 +12,7 @@ public class ReplicationEvent {
     public ReplicationEvent(String msg, Instant readTime, LogSequenceNumber lastReceiveLSN) {
         this.readTime = readTime;
         this.lastReceiveLSN = lastReceiveLSN;
-        this.message = message;
+        this.message = msg;
     }
 
     public Instant getReadTime() {
