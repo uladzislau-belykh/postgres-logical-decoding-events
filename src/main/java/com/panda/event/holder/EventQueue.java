@@ -50,7 +50,7 @@ public class EventQueue implements Closeable {
     }
 
     public void add(Change<Map<String, String>> event) {
-        if (this.isReceiving) {
+        if (!this.isReceiving) {
             throw new RuntimeException("Event queue stop work");
         }
         this.eventQueue.add(event);
@@ -66,7 +66,7 @@ public class EventQueue implements Closeable {
                 logger.info("Event queue is interrupted, probably you lost events");
             }
         }
-        this.isHandling = true;
+        this.isHandling = false;
         this.poller.join();
     }
 }
