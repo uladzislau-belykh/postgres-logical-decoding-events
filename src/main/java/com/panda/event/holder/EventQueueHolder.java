@@ -35,11 +35,12 @@ public class EventQueueHolder implements Closeable {
         this.queueCount = queueCount;
     }
 
-    public void init() {
+    public void init(EventHolderStatisticHandler statisticHandler) {
         if (queues == null) {
             this.queues = new ArrayList<>();
             for (int i = 0; i < queueCount; i++) {
-                queues.add(new EventQueue(handlers, executor));
+                EventQueueStatisticHandler eventQueueStatisticHandler = createEventQueueStatisticHandler(statisticHandler, i);
+                queues.add(new EventQueue(handlers, executor, eventQueueStatisticHandler));
             }
         }
     }
@@ -57,11 +58,6 @@ public class EventQueueHolder implements Closeable {
         handlers.remove(handler);
     }
 
-    private EventQueue getEventQueue(Change<Map<String, String>> event) {
-        int resolve = resolver.resolve(queueCount, table, event);
-        return queues.get(resolve);
-    }
-
     @Override
     public void close() throws IOException {
         if (queues != null) {
@@ -70,5 +66,15 @@ public class EventQueueHolder implements Closeable {
             }
             queues = null;
         }
+    }
+
+    private EventQueue getEventQueue(Change<Map<String, String>> event) {
+        int resolve = resolver.resolve(queueCount, table, event);
+        return queues.get(resolve);
+    }
+
+    private EventQueueStatisticHandler createEventQueueStatisticHandler(EventHolderStatisticHandler statisticHandler, int i) {
+        return new EventQueueStatisticHandler((timestamp, event) -> statisticHandler.eventAddedToHolder(this.table, i, timestamp, event),
+                (timestamp, event) -> statisticHandler.eventHandledInHolder(this.table, i, timestamp, event));
     }
 }

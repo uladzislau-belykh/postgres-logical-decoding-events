@@ -16,6 +16,7 @@ public class EventHolder implements Closeable {
     private Map<String, EventQueueHolder> holders;
     private volatile boolean isReceiving = true;
     private volatile Semaphore semaphore = new Semaphore(DEFAULT_COUNT);
+    private EventHolderStatisticHandler statisticHandler = new SimpleEventHolderStatisticHandler();
 
     public EventHolder() {
         this.holders = new HashMap<>();
@@ -40,7 +41,7 @@ public class EventHolder implements Closeable {
 
     public void init() {
         for (EventQueueHolder value : holders.values()) {
-            value.init();
+            value.init(statisticHandler);
         }
     }
 
@@ -66,6 +67,10 @@ public class EventHolder implements Closeable {
         if (eventQueueHolder != null) {
             eventQueueHolder.unregisterHandler(handler);
         }
+    }
+
+    public void setStatisticHandler(EventHolderStatisticHandler statisticHandler){
+        this.statisticHandler = statisticHandler;
     }
 
     @Override
