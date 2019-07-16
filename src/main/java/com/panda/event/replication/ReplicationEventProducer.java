@@ -18,6 +18,7 @@ public class ReplicationEventProducer implements Closeable {
 
     private ReplicationStream replicationStream;
     private ReplicationEventHandler replicationEventHandler;
+    private ReplicationEventProducerStatisticHandler statistic = new SimpleReplicationEventProducerStatisticHandler();
 
     private Gson gson = new Gson();
     private CompletableFuture producer;
@@ -58,6 +59,7 @@ public class ReplicationEventProducer implements Closeable {
                 logger.error("Producer was interrupted", e);
             }
         });
+        statistic.producerIsRunning();
     }
 
     public void stop() {
@@ -67,9 +69,9 @@ public class ReplicationEventProducer implements Closeable {
         producing = false;
         producer.join();
         producer = null;
+        statistic.producerIsStopped();
     }
 
-    //todo add statistic and metric handler
     public boolean produce() {
         ReplicationEvent replicationEvent = replicationStream.receive();
         if (replicationEvent == null) {
@@ -78,8 +80,8 @@ public class ReplicationEventProducer implements Closeable {
         }
 
         try {
+            statistic.eventIsReceived();
             String message = replicationEvent.getMessage();
-
             ChangeEvent changes = null;
             if (shouldProcessMessage(message)) {
                 changes = gson.fromJson(message, ChangeEvent.class);
@@ -87,11 +89,9 @@ public class ReplicationEventProducer implements Closeable {
                     return false;
                 }
                 replicationEventHandler.handle(changes);
+                statistic.eventIsHandled(changes, replicationEvent.getReadTime());
             }
-            LogSequenceNumber nextLsn = null;
-            if(changes!=null){
-                nextLsn = LogSequenceNumber.valueOf(changes.getNextLsn());
-            }
+            LogSequenceNumber nextLsn = getNextLsn(changes);
             replicationStream.commit(replicationEvent.getLastReceiveLSN(), nextLsn);
         } catch (Exception e) {
             logger.debug("Replication message handling throw error", e);
@@ -129,6 +129,11 @@ public class ReplicationEventProducer implements Closeable {
         this.replicationEventHandler = replicationEventHandler;
     }
 
+    public void setStatistic(ReplicationEventProducerStatisticHandler statisticHandler) {
+        Objects.requireNonNull(statisticHandler);
+        this.statistic = statisticHandler;
+    }
+
     @Override
     public void close() throws IOException {
         stop();
@@ -136,5 +141,14 @@ public class ReplicationEventProducer implements Closeable {
 
     private boolean shouldProcessMessage(String msg) {
         return !msg.matches("\\{[\\s\\S]*\"change\":\\s*\\[\\s*\\]\\s*\\}$");
+    }
+
+    private LogSequenceNumber getNextLsn(ChangeEvent changes) {
+        LogSequenceNumber nextLsn = null;
+        if (changes != null) {
+            nextLsn = LogSequenceNumber.valueOf(changes.getNextLsn());
+        }
+
+        return nextLsn;
     }
 }
