@@ -91,6 +91,7 @@ public class ReplicationStream implements Closeable {
             replicationConnectionSource.invalidateConnection();
             throw e;
         }
+        logger.debug(slotName+ " - slot is dropped");
         return true;
 
     }
@@ -109,6 +110,7 @@ public class ReplicationStream implements Closeable {
             replicationConnectionSource.invalidateConnection();
             throw e;
         }
+        logger.debug(slotName+ " - slot is created");
         return true;
     }
 
