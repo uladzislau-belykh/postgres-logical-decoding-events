@@ -6,7 +6,7 @@
 
     <groupId>com.panda</groupId>
     <artifactId>postgres-logical-decoding-events</artifactId>
-    <version>0.0.2</version>
+    <version>0.0.3-SNAPSHOT</version>
 
     <url>https://github.com/PandaXz/postgres-logical-decoding-events</url>
 
