@@ -34,7 +34,7 @@ public class EventQueue implements Closeable {
                         try {
                             handler.handle(change);
                         } catch (Exception e) {
-                            this.logger.error("Error when handling event: ", e);
+                            this.logger.error("Error when handling event: " + change + " exception: ", e);
                         }
                     }
                 }
