@@ -18,7 +18,7 @@ public class ReplicationEventProducer implements Closeable {
 
     private ReplicationStream replicationStream;
     private ReplicationEventHandler replicationEventHandler;
-    private ReplicationEventProducerStatisticHandler statistic = new SimpleReplicationEventProducerStatisticHandler();
+    private ReplicationEventProducerStatisticHandler statisticHandler = new SimpleReplicationEventProducerStatisticHandler();
 
     private Gson gson = new Gson();
     private CompletableFuture producer;
@@ -59,7 +59,7 @@ public class ReplicationEventProducer implements Closeable {
                 logger.error("Producer was interrupted", e);
             }
         });
-        statistic.producerIsRunning();
+        statisticHandler.producerIsRunning();
     }
 
     public void stop() {
@@ -69,7 +69,7 @@ public class ReplicationEventProducer implements Closeable {
         producing = false;
         producer.join();
         producer = null;
-        statistic.producerIsStopped();
+        statisticHandler.producerIsStopped();
     }
 
     public boolean produce() {
@@ -80,7 +80,7 @@ public class ReplicationEventProducer implements Closeable {
         }
 
         try {
-            statistic.eventIsReceived();
+            statisticHandler.eventIsReceived();
             String message = replicationEvent.getMessage();
             ChangeEvent changes = null;
             if (shouldProcessMessage(message)) {
@@ -89,7 +89,7 @@ public class ReplicationEventProducer implements Closeable {
                     return false;
                 }
                 replicationEventHandler.handle(changes);
-                statistic.eventIsHandled(changes, replicationEvent.getReadTime());
+                statisticHandler.eventIsHandled(changes, replicationEvent.getReadTime());
             }
             LogSequenceNumber nextLsn = getNextLsn(changes);
             replicationStream.commit(replicationEvent.getLastReceiveLSN(), nextLsn);
@@ -102,6 +102,13 @@ public class ReplicationEventProducer implements Closeable {
     }
 
     public boolean dropSlot() throws SQLException {
+        if(producing){
+            throw new RuntimeException("Producer is active");
+        }
+        //todo add check slot is active by other app
+        try {
+            replicationStream.close();
+        } catch (IOException e) {}
         return replicationStream.dropSlot();
     }
 
@@ -129,9 +136,9 @@ public class ReplicationEventProducer implements Closeable {
         this.replicationEventHandler = replicationEventHandler;
     }
 
-    public void setStatistic(ReplicationEventProducerStatisticHandler statisticHandler) {
+    public void setStatisticHandler(ReplicationEventProducerStatisticHandler statisticHandler) {
         Objects.requireNonNull(statisticHandler);
-        this.statistic = statisticHandler;
+        this.statisticHandler = statisticHandler;
     }
 
     @Override

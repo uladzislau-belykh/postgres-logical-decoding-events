@@ -215,6 +215,7 @@ public class ReplicationStream implements Closeable {
         public void closeStream() throws SQLException {
             if (stream != null && !stream.isClosed()) {
                 stream.close();
+                reconnectRequired = true;
             }
         }
 
