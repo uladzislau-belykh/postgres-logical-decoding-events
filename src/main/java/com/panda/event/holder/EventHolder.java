@@ -30,13 +30,16 @@ public class EventHolder implements Closeable {
             semaphore.acquire();
         } catch (InterruptedException e) {
         }
-        for (Change<Map<String, String>> event : events) {
-            EventQueueHolder eventQueueHolder = holders.get(event.getTable());
-            if (eventQueueHolder != null) {
-                eventQueueHolder.add(event);
+        try {
+            for (Change<Map<String, String>> event : events) {
+                EventQueueHolder eventQueueHolder = holders.get(event.getTable());
+                if (eventQueueHolder != null) {
+                    eventQueueHolder.add(event);
+                }
             }
+        }finally {
+            semaphore.release();
         }
-        semaphore.release();
     }
 
     public void init() {
