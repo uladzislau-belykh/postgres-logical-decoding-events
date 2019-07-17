@@ -15,6 +15,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -43,7 +44,7 @@ public class ReplicationStream implements Closeable {
             ByteBuffer buffer;
             PGReplicationStream stream = streamHolder.getStream();
             buffer = stream.readPending();
-            Instant readTime = Instant.now();
+            Instant readTime = Instant.now(Clock.systemUTC());
             LogSequenceNumber lastReceiveLSN = stream.getLastReceiveLSN();
             if (buffer == null) {
                 return null;

@@ -6,6 +6,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
@@ -20,23 +22,26 @@ public class EventQueue implements Closeable {
     private volatile boolean isHandling = true;
     private CompletableFuture poller;
     private Queue<Change<Map<String, String>>> eventQueue = new ConcurrentLinkedQueue<>();
+    private EventQueueStatisticHandler statisticHandler;
 
-    public EventQueue(Set<EventHandler> handlers, Executor executor) {
+    public EventQueue(Set<EventHandler> handlers, Executor executor, EventQueueStatisticHandler eventQueueStatisticHandler) {
+        this.statisticHandler = eventQueueStatisticHandler;
         Runnable eventHandler = () -> {
             try {
                 while (this.isHandling) {
-                    Change<Map<String, String>> change = this.eventQueue.poll();
-                    if (change == null) {
+                    Change<Map<String, String>> event = this.eventQueue.poll();
+                    if (event == null) {
                         Thread.sleep(1000L);
                         continue;
                     }
                     for (EventHandler handler : handlers) {
                         try {
-                            handler.handle(change);
+                            handler.handle(event);
                         } catch (Exception e) {
-                            this.logger.error("Error when handling event: " + change + " exception: ", e);
+                            logger.error("Error when handling event: " + event + " exception: ", e);
                         }
                     }
+                    this.statisticHandler.eventHandledByQueue(Instant.now(Clock.systemUTC()), event);
                 }
             } catch (Exception e) {
             }
@@ -53,7 +58,9 @@ public class EventQueue implements Closeable {
         if (!this.isReceiving) {
             throw new RuntimeException("Event queue stop work");
         }
+        Instant addTimestamp = Instant.now(Clock.systemUTC());
         this.eventQueue.add(event);
+        this.statisticHandler.eventAddedToQueue(addTimestamp, event);
     }
 
     @Override

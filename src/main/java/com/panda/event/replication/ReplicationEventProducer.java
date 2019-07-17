@@ -11,7 +11,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 
 public class ReplicationEventProducer implements Closeable {
     private static final Logger logger = LoggerFactory.getLogger(ReplicationEventProducer.class);
@@ -32,34 +32,44 @@ public class ReplicationEventProducer implements Closeable {
         this.replicationEventHandler = replicationEventHandler;
     }
 
-    public void start(Long timeout, ExecutorService executorService) {
+    public void start(Long timeout) {
+        this.start(timeout, null);
+    }
+
+    public void start(Long timeout, Executor executor) {
         if (this.producer != null) {
             throw new RuntimeException("Producer is running");
         }
         this.producing = true;
-        this.producer = CompletableFuture.runAsync(() -> {
-            try {
-                if (!slotExists()) {
-                    createSlot();
-                }
-            } catch (SQLException e) {
-                logger.error("Cannot create or check slot cause ", e);
-            }
-
-            try {
-                while (this.producing) {
-                    boolean isProduced = produce();
-                    if (!isProduced) {
-                        Thread.sleep(timeout);
-                    }
-                }
-            } catch (InterruptedException e) {
-                this.producing = false;
-                this.producer = null;
-                logger.error("Producer was interrupted", e);
-            }
-        });
+        if (executor == null) {
+            this.producer = CompletableFuture.runAsync(() -> this.run(timeout));
+        } else {
+            this.producer = CompletableFuture.runAsync(() -> this.run(timeout), executor);
+        }
         statisticHandler.producerIsRunning();
+    }
+
+    public void run(Long timeout) {
+        try {
+            if (!slotExists()) {
+                createSlot();
+            }
+        } catch (SQLException e) {
+            logger.error("Cannot create or check slot cause ", e);
+        }
+
+        try {
+            while (this.producing) {
+                boolean isProduced = produce();
+                if (!isProduced) {
+                    Thread.sleep(timeout);
+                }
+            }
+        } catch (InterruptedException e) {
+            this.producing = false;
+            this.producer = null;
+            logger.error("Producer was interrupted", e);
+        }
     }
 
     public void stop() {
@@ -102,13 +112,14 @@ public class ReplicationEventProducer implements Closeable {
     }
 
     public boolean dropSlot() throws SQLException {
-        if(producing){
+        if (producing) {
             throw new RuntimeException("Producer is active");
         }
         //todo add check slot is active by other app
         try {
             replicationStream.close();
-        } catch (IOException e) {}
+        } catch (IOException ignored) {
+        }
         return replicationStream.dropSlot();
     }
 
