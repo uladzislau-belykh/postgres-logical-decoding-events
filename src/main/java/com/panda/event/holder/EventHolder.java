@@ -1,6 +1,10 @@
 package com.panda.event.holder;
 
 import com.panda.event.dto.Change;
+import com.panda.event.holder.resolver.EventQueueResolver;
+import com.panda.event.holder.resolver.SimpleEventQueueResolver;
+import com.panda.event.holder.statistic.EventHolderStatisticHandler;
+import com.panda.event.holder.statistic.SimpleEventHolderStatisticHandler;
 
 import java.io.Closeable;
 import java.io.IOException;

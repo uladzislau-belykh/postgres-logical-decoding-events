@@ -1,4 +1,4 @@
-package com.panda.event.holder;
+package com.panda.event.holder.statistic;
 
 import com.panda.event.dto.Change;
 

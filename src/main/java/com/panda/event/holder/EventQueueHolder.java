@@ -1,6 +1,9 @@
 package com.panda.event.holder;
 
 import com.panda.event.dto.Change;
+import com.panda.event.holder.resolver.EventQueueResolver;
+import com.panda.event.holder.statistic.EventHolderStatisticHandler;
+import com.panda.event.holder.statistic.EventQueueStatisticHandler;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -69,7 +72,7 @@ public class EventQueueHolder implements Closeable {
     }
 
     private EventQueue getEventQueue(Change<Map<String, String>> event) {
-        int resolve = resolver.resolve(queueCount, table, event);
+        int resolve = resolver.resolve(queueCount, event);
         return queues.get(resolve);
     }
 

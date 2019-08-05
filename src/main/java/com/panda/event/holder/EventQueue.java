@@ -1,6 +1,7 @@
 package com.panda.event.holder;
 
 import com.panda.event.dto.Change;
+import com.panda.event.holder.statistic.EventQueueStatisticHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
