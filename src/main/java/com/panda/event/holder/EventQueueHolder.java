@@ -40,12 +40,16 @@ public class EventQueueHolder implements Closeable {
         this.queueCount = queueCount;
     }
 
-    public void init(EventHolderStatisticHandler statisticHandler) {
+    public void init(EventHolderStatisticHandler statisticHandler, Long idlePollPeriod) {
         if (this.queues == null) {
             this.queues = new ArrayList<>();
             for (int i = 0; i < this.queueCount; i++) {
                 EventQueueStatisticHandler eventQueueStatisticHandler = new EventQueueStatisticHandler(this.table, i, statisticHandler);
-                this.queues.add(new EventQueue(this.handlers, this.pollerExecutor, eventQueueStatisticHandler, this.handlerExecutor));
+                EventQueue queue = new EventQueue(this.handlers, this.pollerExecutor, eventQueueStatisticHandler, this.handlerExecutor);
+                if (idlePollPeriod != null) {
+                    queue.setIdlePollPeriod(idlePollPeriod);
+                }
+                this.queues.add(queue);
             }
         }
     }

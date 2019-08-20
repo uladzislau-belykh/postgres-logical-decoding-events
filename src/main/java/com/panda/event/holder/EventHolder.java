@@ -46,9 +46,12 @@ public class EventHolder implements Closeable {
         }
     }
 
-    public void init() {
+    public void init(Long idlePollPeriod) {
+        if (idlePollPeriod != null && idlePollPeriod < 0){
+            throw new RuntimeException("Idle poll period should be positive");
+        }
         for (EventQueueHolder value : holders.values()) {
-            value.init(statisticHandler);
+            value.init(statisticHandler, idlePollPeriod);
         }
     }
 
