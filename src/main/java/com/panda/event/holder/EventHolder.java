@@ -56,8 +56,8 @@ public class EventHolder implements Closeable {
         holders.put(table, new EventQueueHolder(table, queueCount, resolver));
     }
 
-    public void registerHolder(String table, int queueCount, EventQueueResolver resolver, Executor executor) {
-        holders.put(table, new EventQueueHolder(table, queueCount, resolver, executor));
+    public void registerHolder(String table, int queueCount, EventQueueResolver resolver, Executor pollerExecutor, Executor handlerExecutor) {
+        holders.put(table, new EventQueueHolder(table, queueCount, resolver, pollerExecutor, handlerExecutor));
     }
 
     public void unregisterHolder(String table) {

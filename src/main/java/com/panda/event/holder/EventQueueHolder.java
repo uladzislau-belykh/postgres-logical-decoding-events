@@ -20,7 +20,8 @@ public class EventQueueHolder implements Closeable {
     private List<EventQueue> queues;
     private Set<EventHandler> handlers;
     private EventQueueResolver resolver;
-    private Executor executor;
+    private Executor pollerExecutor;
+    private Executor handlerExecutor;
     private Integer queueCount;
 
     public EventQueueHolder(String table, int queueCount, EventQueueResolver resolver) {
@@ -30,20 +31,21 @@ public class EventQueueHolder implements Closeable {
         this.queueCount = queueCount;
     }
 
-    public EventQueueHolder(String table, int queueCount, EventQueueResolver resolver, Executor executor) {
+    public EventQueueHolder(String table, int queueCount, EventQueueResolver resolver, Executor pollerExecutor, Executor handlerExecutor) {
         this.table = table;
         this.handlers = new HashSet<>();
         this.resolver = resolver;
-        this.executor = executor;
+        this.pollerExecutor = pollerExecutor;
+        this.handlerExecutor = handlerExecutor;
         this.queueCount = queueCount;
     }
 
     public void init(EventHolderStatisticHandler statisticHandler) {
-        if (queues == null) {
+        if (this.queues == null) {
             this.queues = new ArrayList<>();
-            for (int i = 0; i < queueCount; i++) {
-                EventQueueStatisticHandler eventQueueStatisticHandler = createEventQueueStatisticHandler(statisticHandler, i);
-                queues.add(new EventQueue(handlers, executor, eventQueueStatisticHandler));
+            for (int i = 0; i < this.queueCount; i++) {
+                EventQueueStatisticHandler eventQueueStatisticHandler = new EventQueueStatisticHandler(this.table, i, statisticHandler);
+                this.queues.add(new EventQueue(this.handlers, this.pollerExecutor, eventQueueStatisticHandler, this.handlerExecutor));
             }
         }
     }
@@ -54,30 +56,25 @@ public class EventQueueHolder implements Closeable {
     }
 
     public void registerHandler(EventHandler handler) {
-        handlers.add(handler);
+        this.handlers.add(handler);
     }
 
     public void unregisterHandler(EventHandler handler) {
-        handlers.remove(handler);
+        this.handlers.remove(handler);
     }
 
     @Override
     public void close() throws IOException {
-        if (queues != null) {
-            for (EventQueue queue : queues) {
+        if (this.queues != null) {
+            for (EventQueue queue : this.queues) {
                 queue.close();
             }
-            queues = null;
+            this.queues = null;
         }
     }
 
     private EventQueue getEventQueue(Change<Map<String, String>> event) {
-        int resolve = resolver.resolve(queueCount, event);
-        return queues.get(resolve);
-    }
-
-    private EventQueueStatisticHandler createEventQueueStatisticHandler(EventHolderStatisticHandler statisticHandler, int i) {
-        return new EventQueueStatisticHandler((timestamp, event) -> statisticHandler.eventAddedToHolder(this.table, i, timestamp, event),
-                (timestamp, event) -> statisticHandler.eventHandledInHolder(this.table, i, timestamp, event));
+        int resolve = this.resolver.resolve(this.queueCount, event);
+        return this.queues.get(resolve);
     }
 }

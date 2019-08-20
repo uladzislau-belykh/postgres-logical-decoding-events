@@ -9,4 +9,6 @@ public interface EventHolderStatisticHandler {
     void eventAddedToHolder(String table, int queueNumber, Instant timestamp, Change<Map<String, String>> event);
 
     void eventHandledInHolder(String table, int queueNumber, Instant timestamp, Change<Map<String, String>> event);
+
+    void eventHandled(String table, int queueNumber, String handlerName, Long timestamp, Change<Map<String, String>> event);
 }

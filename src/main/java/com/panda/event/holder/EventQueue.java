@@ -25,7 +25,8 @@ public class EventQueue implements Closeable {
     private Queue<Change<Map<String, String>>> eventQueue = new ConcurrentLinkedQueue<>();
     private EventQueueStatisticHandler statisticHandler;
 
-    public EventQueue(Set<EventHandler> handlers, Executor executor, EventQueueStatisticHandler eventQueueStatisticHandler) {
+    public EventQueue(Set<EventHandler> handlers, Executor pollerExecutor, EventQueueStatisticHandler eventQueueStatisticHandler,
+                      Executor handlerExecutor) {
         this.statisticHandler = eventQueueStatisticHandler;
         Runnable eventHandler = () -> {
             try {
@@ -35,24 +36,36 @@ public class EventQueue implements Closeable {
                         Thread.sleep(1000L);
                         continue;
                     }
-                    for (EventHandler handler : handlers) {
-                        try {
-                            handler.handle(event);
-                        } catch (Exception e) {
-                            logger.error("Error when handling event: " + event + " exception: ", e);
-                        }
-                    }
+                    handle(handlers, event, handlerExecutor);
                     this.statisticHandler.eventHandledByQueue(Instant.now(Clock.systemUTC()), event);
                 }
             } catch (Exception e) {
             }
         };
 
-        if (executor == null) {
+        if (pollerExecutor == null) {
             this.poller = CompletableFuture.runAsync(eventHandler);
         } else {
-            this.poller = CompletableFuture.runAsync(eventHandler, executor);
+            this.poller = CompletableFuture.runAsync(eventHandler, pollerExecutor);
         }
+    }
+
+    private void handle(Set<EventHandler> handlers, Change<Map<String, String>> event, Executor handlerExecutor) {
+        CompletableFuture.allOf(handlers.stream()
+                .map(handler -> {
+                    Runnable task = () -> {
+                        Long start = Clock.systemUTC().millis();
+                        try {
+                            handler.handle(event);
+                        } catch (Exception e) {
+                            logger.error("Error when handling event: " + event + " exception: ", e);
+                        }
+                        this.statisticHandler.eventHandled(handler.getClass().getSimpleName(), Clock.systemUTC().millis() - start, event);
+                    };
+                    return handlerExecutor == null ? CompletableFuture.runAsync(task) : CompletableFuture.runAsync(task, handlerExecutor);
+                })
+                .toArray(CompletableFuture[]::new))
+                .join();
     }
 
     public void add(Change<Map<String, String>> event) {
