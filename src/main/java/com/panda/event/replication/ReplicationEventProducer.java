@@ -85,7 +85,7 @@ public class ReplicationEventProducer implements Closeable {
     public boolean produce() {
         ReplicationEvent replicationEvent = replicationStream.receive();
         if (replicationEvent == null) {
-            logger.debug("Replication stream return null");
+            logger.trace("Replication stream return null");
             return false;
         }
 

@@ -39,7 +39,7 @@ public class ReplicationStream implements Closeable {
     }
 
     public ReplicationEvent receive() {
-        logger.debug("Receive message");
+        logger.trace("Receive message");
         try {
             ByteBuffer buffer;
             PGReplicationStream stream = streamHolder.getStream();
