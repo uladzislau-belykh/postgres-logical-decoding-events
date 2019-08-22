@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Semaphore;
 
@@ -21,6 +22,7 @@ public class EventHolder implements Closeable {
     private volatile boolean isReceiving = true;
     private volatile Semaphore semaphore = new Semaphore(DEFAULT_COUNT);
     private EventHolderStatisticHandler statisticHandler = new SimpleEventHolderStatisticHandler();
+    private Long idlePollPeriod = 10L;
 
     public EventHolder() {
         this.holders = new HashMap<>();
@@ -41,17 +43,14 @@ public class EventHolder implements Closeable {
                     eventQueueHolder.add(event);
                 }
             }
-        }finally {
+        } finally {
             semaphore.release();
         }
     }
 
-    public void init(Long idlePollPeriod) {
-        if (idlePollPeriod != null && idlePollPeriod < 0){
-            throw new RuntimeException("Idle poll period should be positive");
-        }
-        for (EventQueueHolder value : holders.values()) {
-            value.init(statisticHandler, idlePollPeriod);
+    public void init() {
+        for (EventQueueHolder value : this.holders.values()) {
+            value.init(this.statisticHandler, this.idlePollPeriod);
         }
     }
 
@@ -79,8 +78,17 @@ public class EventHolder implements Closeable {
         }
     }
 
-    public void setStatisticHandler(EventHolderStatisticHandler statisticHandler){
+    public void setStatisticHandler(EventHolderStatisticHandler statisticHandler) {
+        Objects.requireNonNull(statisticHandler);
         this.statisticHandler = statisticHandler;
+    }
+
+    public void setIdlePollPeriod(Long idlePollPeriod) {
+        Objects.requireNonNull(idlePollPeriod);
+        if (idlePollPeriod < 0L) {
+            throw new RuntimeException("Idle poll period should be positive");
+        }
+        this.idlePollPeriod = idlePollPeriod;
     }
 
     @Override

@@ -1,6 +1,7 @@
 package com.panda.event.holder;
 
 import com.panda.event.dto.Change;
+import com.panda.event.holder.queue.EventCommonQueue;
 import com.panda.event.holder.resolver.EventQueueResolver;
 import com.panda.event.holder.statistic.EventHolderStatisticHandler;
 import com.panda.event.holder.statistic.EventQueueStatisticHandler;
@@ -45,10 +46,8 @@ public class EventQueueHolder implements Closeable {
             this.queues = new ArrayList<>();
             for (int i = 0; i < this.queueCount; i++) {
                 EventQueueStatisticHandler eventQueueStatisticHandler = new EventQueueStatisticHandler(this.table, i, statisticHandler);
-                EventQueue queue = new EventQueue(this.handlers, this.pollerExecutor, eventQueueStatisticHandler, this.handlerExecutor);
-                if (idlePollPeriod != null) {
-                    queue.setIdlePollPeriod(idlePollPeriod);
-                }
+                EventQueue queue = new EventCommonQueue(this.handlers, this.pollerExecutor, idlePollPeriod, eventQueueStatisticHandler,
+                        this.handlerExecutor);
                 this.queues.add(queue);
             }
         }

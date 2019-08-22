@@ -12,12 +12,17 @@ public class SimpleEventHolderStatisticHandler implements EventHolderStatisticHa
     }
 
     @Override
-    public void eventHandledInHolder(String table, int queueNumber, Instant timestamp, Change<Map<String, String>> event) {
+    public void eventHandled(String table, int queueNumber, Instant timestamp, Change<Map<String, String>> event) {
 
     }
 
     @Override
     public void eventHandled(String table, int queueNumber, String handlerName, Long timestamp, Change<Map<String, String>> event) {
+
+    }
+
+    @Override
+    public void eventPolledFromQueue(String table, int queueNumber, Instant timestamp, Change<Map<String, String>> event) {
 
     }
 }

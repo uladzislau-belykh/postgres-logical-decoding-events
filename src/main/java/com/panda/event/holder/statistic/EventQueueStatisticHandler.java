@@ -21,8 +21,12 @@ public class EventQueueStatisticHandler {
         statisticHandler.eventAddedToHolder(this.table, queueNumber, timestamp, event);
     }
 
-    public void eventHandledByQueue(Instant timestamp, Change<Map<String, String>> event) {
-        statisticHandler.eventHandledInHolder(this.table, queueNumber, timestamp, event);
+    public void eventPolledFromQueue(Instant timestamp, Change<Map<String, String>> event){
+        statisticHandler.eventPolledFromQueue(this.table, queueNumber, timestamp, event);
+    }
+
+    public void eventHandled(Instant timestamp, Change<Map<String, String>> event) {
+        statisticHandler.eventHandled(this.table, queueNumber, timestamp, event);
     }
 
     public void eventHandled(String handlerName, Long duration, Change<Map<String, String>> event) {
