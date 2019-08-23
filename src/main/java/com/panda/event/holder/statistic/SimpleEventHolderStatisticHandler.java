@@ -7,12 +7,12 @@ import java.util.Map;
 
 public class SimpleEventHolderStatisticHandler implements EventHolderStatisticHandler {
     @Override
-    public void eventAddedToHolder(String table, int queueNumber, Instant timestamp, Change<Map<String, String>> event) {
+    public void eventAddedToHolder(String table, int queueNumber, String handlerName, Instant timestamp, Change<Map<String, String>> event) {
 
     }
 
     @Override
-    public void eventHandled(String table, int queueNumber, Instant timestamp, Change<Map<String, String>> event) {
+    public void eventHandled(String table, int queueNumber, String handlerName, Instant timestamp, Change<Map<String, String>> event) {
 
     }
 
@@ -22,7 +22,7 @@ public class SimpleEventHolderStatisticHandler implements EventHolderStatisticHa
     }
 
     @Override
-    public void eventPolledFromQueue(String table, int queueNumber, Instant timestamp, Change<Map<String, String>> event) {
+    public void eventPolledFromQueue(String table, int queueNumber, String handlerName, Instant timestamp, Change<Map<String, String>> event) {
 
     }
 }

@@ -54,12 +54,20 @@ public class EventHolder implements Closeable {
         }
     }
 
-    public void registerHolder(String table, int queueCount, EventQueueResolver resolver) {
-        holders.put(table, new EventQueueHolder(table, queueCount, resolver));
+    public void registerCommonHolder(String table, int queueCount, EventQueueResolver resolver) {
+        holders.put(table, new CommonEventQueueHolder(table, queueCount, resolver));
     }
 
-    public void registerHolder(String table, int queueCount, EventQueueResolver resolver, Executor pollerExecutor, Executor handlerExecutor) {
-        holders.put(table, new EventQueueHolder(table, queueCount, resolver, pollerExecutor, handlerExecutor));
+    public void registerCommonHolder(String table, int queueCount, EventQueueResolver resolver, Executor pollerExecutor, Executor handlerExecutor) {
+        holders.put(table, new CommonEventQueueHolder(table, queueCount, resolver, pollerExecutor, handlerExecutor));
+    }
+
+    public void registerDistributedHolder(String table, int queueCount, EventQueueResolver resolver) {
+        holders.put(table, new CommonEventQueueHolder(table, queueCount, resolver));
+    }
+
+    public void registerDistributedHolder(String table, int queueCount, EventQueueResolver resolver, Executor pollerExecutor) {
+        holders.put(table, new DistributedEventQueueHolder(table, queueCount, resolver, pollerExecutor));
     }
 
     public void unregisterHolder(String table) {
@@ -67,7 +75,7 @@ public class EventHolder implements Closeable {
     }
 
     public void registerHandler(String table, EventHandler handler) {
-        holders.putIfAbsent(table, new EventQueueHolder(table, 1, new SimpleEventQueueResolver()));
+        holders.putIfAbsent(table, new CommonEventQueueHolder(table, 1, new SimpleEventQueueResolver()));
         holders.get(table).registerHandler(handler);
     }
 
