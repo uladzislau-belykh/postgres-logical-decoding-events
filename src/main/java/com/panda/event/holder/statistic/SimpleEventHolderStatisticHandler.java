@@ -7,7 +7,7 @@ import java.util.Map;
 
 public class SimpleEventHolderStatisticHandler implements EventHolderStatisticHandler {
     @Override
-    public void eventAddedToHolder(String table, int queueNumber, String handlerName, Instant timestamp, Change<Map<String, String>> event) {
+    public void eventAddedToQueue(String table, int queueNumber, String handlerName, Instant timestamp, Change<Map<String, String>> event) {
 
     }
 

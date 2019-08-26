@@ -20,7 +20,7 @@ public class EventQueueStatisticHandler {
     }
 
     public void eventAddedToQueue(Instant timestamp, Change<Map<String, String>> event) {
-        this.statisticHandler.eventAddedToHolder(this.table, this.queueNumber, this.handlerName, timestamp, event);
+        this.statisticHandler.eventAddedToQueue(this.table, this.queueNumber, this.handlerName, timestamp, event);
     }
 
     public void eventPolledFromQueue(Instant timestamp, Change<Map<String, String>> event){

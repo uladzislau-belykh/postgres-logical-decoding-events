@@ -6,7 +6,7 @@ import java.time.Instant;
 import java.util.Map;
 
 public interface EventHolderStatisticHandler {
-    void eventAddedToHolder(String table, int queueNumber, String handlerName, Instant timestamp, Change<Map<String, String>> event);
+    void eventAddedToQueue(String table, int queueNumber, String handlerName, Instant timestamp, Change<Map<String, String>> event);
 
     void eventHandled(String table, int queueNumber, String handlerName, Instant timestamp, Change<Map<String, String>> event);
 
