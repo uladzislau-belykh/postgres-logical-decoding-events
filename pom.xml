@@ -6,7 +6,7 @@
 
     <groupId>com.panda</groupId>
     <artifactId>postgres-logical-decoding-events</artifactId>
-    <version>0.0.7-SNAPSHOT</version>
+    <version>0.0.7</version>
     <packaging>jar</packaging>
 
     <name>Postgres logical decoding events</name>
