@@ -81,8 +81,8 @@ public class EventQueue implements Closeable {
             throw new RuntimeException("Event queue stop work");
         }
         Instant addTimestamp = Instant.now(Clock.systemUTC());
-        this.eventQueue.add(event);
         this.statisticHandler.eventAddedToQueue(addTimestamp, event);
+        this.eventQueue.add(event);
     }
 
     @Override
