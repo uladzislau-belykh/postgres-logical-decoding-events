@@ -72,6 +72,10 @@ public class ReplicationEventProducer implements Closeable {
         }
     }
 
+    public boolean isProducing() {
+        return producer != null;
+    }
+
     public void stop() {
         if (producer == null || !producing) {
             return;
