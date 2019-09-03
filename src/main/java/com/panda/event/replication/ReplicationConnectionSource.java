@@ -1,3 +1,20 @@
+/*
+ *   Copyright 2019 the original author or authors.
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+ *
+ *        https://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ */
+
 package com.panda.event.replication;
 
 import org.postgresql.PGConnection;
@@ -14,6 +31,11 @@ import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
 
+/**
+ * Wrapper for {@link PGConnection}. It manages connection and reconnect, if necessary.
+ *
+ * @author Uladzislau Belykh
+ */
 public class ReplicationConnectionSource implements Closeable {
     private static final Logger logger = LoggerFactory.getLogger(ReplicationEventProducer.class);
 
@@ -22,15 +44,29 @@ public class ReplicationConnectionSource implements Closeable {
     private String password;
     private Connection connection;
     private boolean reconnectRequired = true;
-    private Set<Runnable> reconnectSubscribers = new HashSet<>();
+    private Set<ReconnectSubscriber> reconnectSubscribers = new HashSet<>();
 
+    /**
+     * Instantiates a new Replication connection source.
+     *
+     * @param jdbcUrl  the jdbc url
+     * @param username the username
+     * @param password the password
+     */
     public ReplicationConnectionSource(String jdbcUrl, String username, String password) {
         this.jdbcUrl = jdbcUrl;
         this.username = username;
         this.password = password;
     }
 
-    //todo rewrite, use proxy to catch exceptions and invalidate connection
+    /**
+     * Create new connection, if not exists and return.
+     *
+     * @param reconnect if is true, close current connection(if exists) and create new one
+     * @return the connection
+     * @throws SQLException the sql exception
+     */
+//todo rewrite, use proxy to catch exceptions and invalidate connection
     public PGConnection getConnection(boolean reconnect) throws SQLException {
         if (reconnect || reconnectRequired) {
             closeConnection();
@@ -44,12 +80,39 @@ public class ReplicationConnectionSource implements Closeable {
         return connection.unwrap(PGConnection.class);
     }
 
+    /**
+     Create new connection, if not exists and return.
+     *
+     * @return the connection
+     * @throws SQLException the sql exception
+     */
     public PGConnection getConnection() throws SQLException {
         return getConnection(false);
     }
 
+    /**
+     * Invalidate current connection.
+     */
     public void invalidateConnection() {
         reconnectRequired = true;
+    }
+
+    /**
+     * Register reconnect subscriber.
+     *
+     * @param callback the callback
+     */
+    public void registerSubscriber(ReconnectSubscriber callback){
+        reconnectSubscribers.add(callback);
+    }
+
+    /**
+     * Unregister reconnect subscriber.
+     *
+     * @param callback the callback
+     */
+    public void unregisterSubscriber(ReconnectSubscriber callback){
+        reconnectSubscribers.remove(callback);
     }
 
     private Connection createReplicationConnection() throws SQLException {
@@ -62,16 +125,8 @@ public class ReplicationConnectionSource implements Closeable {
         return DriverManager.getConnection(jdbcUrl, props);
     }
 
-    public void registerSubscriber(Runnable callback){
-        reconnectSubscribers.add(callback);
-    }
-
-    public void unregisterSubscriber(Runnable callback){
-        reconnectSubscribers.remove(callback);
-    }
-
     private void sendEvent() {
-        reconnectSubscribers.forEach(runnable -> runnable.run());
+        reconnectSubscribers.forEach(ReconnectSubscriber::reconnect);
     }
 
     private void closeConnection() throws SQLException {

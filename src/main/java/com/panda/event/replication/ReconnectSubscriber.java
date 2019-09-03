@@ -15,11 +15,17 @@
  *
  */
 
-package com.panda.event.dto;
+package com.panda.event.replication;
 
 /**
+ * The interface for show that reconnect is necessary
+ *
  * @author Uladzislau Belykh
  */
-public enum ChangeType {
-    INSERT, UPDATE, DELETE;
+public interface ReconnectSubscriber {
+
+    /**
+     * Event about reconnect is necessary.
+     */
+    void reconnect();
 }
