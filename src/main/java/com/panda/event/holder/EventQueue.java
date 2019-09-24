@@ -27,11 +27,11 @@ import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Map;
-import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * @author Uladzislau Belykh
@@ -42,19 +42,15 @@ public class EventQueue implements Closeable {
     private volatile boolean isReceiving = true;
     private volatile boolean isHandling = true;
     private CompletableFuture poller;
-    private Queue<Change<Map<String, String>>> eventQueue = new ConcurrentLinkedQueue<>();
+    private BlockingQueue<Change<Map<String, String>>> eventQueue = new LinkedBlockingQueue<>();
     private EventQueueStatisticHandler statisticHandler;
 
-    public EventQueue(EventHandler handler, Executor pollerExecutor, long idlePollPeriod, EventQueueStatisticHandler eventQueueStatisticHandler) {
+    public EventQueue(EventHandler handler, Executor pollerExecutor, EventQueueStatisticHandler eventQueueStatisticHandler) {
         this.statisticHandler = eventQueueStatisticHandler;
         Runnable eventHandler = () -> {
             try {
                 while (this.isHandling) {
-                    Change<Map<String, String>> event = this.eventQueue.poll();
-                    if (event == null) {
-                        Thread.sleep(idlePollPeriod);
-                        continue;
-                    }
+                    Change<Map<String, String>> event = this.eventQueue.take();
                     this.statisticHandler.eventPolledFromQueue(Instant.now(Clock.systemUTC()), event);
                     handleEvent(event, handler);
                     this.statisticHandler.eventHandled(Instant.now(Clock.systemUTC()), event);
@@ -70,17 +66,13 @@ public class EventQueue implements Closeable {
         }
     }
 
-    public EventQueue(Set<EventHandler> handlers, Executor pollerExecutor, long idlePollPeriod, EventQueueStatisticHandler eventQueueStatisticHandler,
+    public EventQueue(Set<EventHandler> handlers, Executor pollerExecutor, EventQueueStatisticHandler eventQueueStatisticHandler,
                       Executor handlerExecutor) {
         this.statisticHandler = eventQueueStatisticHandler;
         Runnable eventHandler = () -> {
             try {
                 while (this.isHandling) {
-                    Change<Map<String, String>> event = this.eventQueue.poll();
-                    if (event == null) {
-                        Thread.sleep(idlePollPeriod);
-                        continue;
-                    }
+                    Change<Map<String, String>> event = this.eventQueue.take();
                     this.statisticHandler.eventPolledFromQueue(Instant.now(Clock.systemUTC()), event);
                     handle(handlers, event, handlerExecutor);
                     this.statisticHandler.eventHandled(Instant.now(Clock.systemUTC()), event);

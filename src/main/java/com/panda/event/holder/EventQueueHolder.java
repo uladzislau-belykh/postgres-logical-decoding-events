@@ -27,7 +27,7 @@ import java.util.Map;
 * @author Uladzislau Belykh
 */
 public interface EventQueueHolder extends Closeable {
-    void init(EventHolderStatisticHandler statisticHandler, Long idlePollPeriod);
+    void init(EventHolderStatisticHandler statisticHandler);
 
     void add(Change<Map<String, String>> event);
 

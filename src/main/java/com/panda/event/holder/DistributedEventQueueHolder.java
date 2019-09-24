@@ -58,7 +58,7 @@ public class DistributedEventQueueHolder implements EventQueueHolder {
     }
 
     @Override
-    public void init(EventHolderStatisticHandler statisticHandler, Long idlePollPeriod) {
+    public void init(EventHolderStatisticHandler statisticHandler) {
         if (this.queues == null) {
             this.queues = new ArrayList<>();
             for (int i = 0; i < this.queueCount; i++) {
@@ -67,7 +67,7 @@ public class DistributedEventQueueHolder implements EventQueueHolder {
                 for (EventHandler handler : this.handlers) {
                     EventQueueStatisticHandler eventQueueStatisticHandler = new EventQueueStatisticHandler(this.table, i, statisticHandler,
                             handler.getClass().getSimpleName());
-                    EventQueue queue = new EventQueue(handler, this.pollerExecutor, idlePollPeriod, eventQueueStatisticHandler);
+                    EventQueue queue = new EventQueue(handler, this.pollerExecutor,eventQueueStatisticHandler);
                     queues.add(queue);
                 }
             }

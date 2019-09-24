@@ -42,7 +42,6 @@ public class EventHolder implements Closeable {
     private volatile boolean isReceiving = true;
     private volatile Semaphore semaphore = new Semaphore(DEFAULT_COUNT);
     private EventHolderStatisticHandler statisticHandler = new SimpleEventHolderStatisticHandler();
-    private Long idlePollPeriod = 10L;
 
     public EventHolder() {
         this.holders = new HashMap<>();
@@ -70,7 +69,7 @@ public class EventHolder implements Closeable {
 
     public void init() {
         for (EventQueueHolder value : this.holders.values()) {
-            value.init(this.statisticHandler, this.idlePollPeriod);
+            value.init(this.statisticHandler);
         }
     }
 
@@ -109,14 +108,6 @@ public class EventHolder implements Closeable {
     public void setStatisticHandler(EventHolderStatisticHandler statisticHandler) {
         Objects.requireNonNull(statisticHandler);
         this.statisticHandler = statisticHandler;
-    }
-
-    public void setIdlePollPeriod(Long idlePollPeriod) {
-        Objects.requireNonNull(idlePollPeriod);
-        if (idlePollPeriod < 0L) {
-            throw new RuntimeException("Idle poll period should be positive");
-        }
-        this.idlePollPeriod = idlePollPeriod;
     }
 
     @Override

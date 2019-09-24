@@ -60,13 +60,12 @@ public class CommonEventQueueHolder implements EventQueueHolder {
     }
 
     @Override
-    public void init(EventHolderStatisticHandler statisticHandler, Long idlePollPeriod) {
+    public void init(EventHolderStatisticHandler statisticHandler) {
         if (this.queues == null) {
             this.queues = new ArrayList<>();
             for (int i = 0; i < this.queueCount; i++) {
                 EventQueueStatisticHandler eventQueueStatisticHandler = new EventQueueStatisticHandler(this.table, i, statisticHandler, null);
-                EventQueue queue = new EventQueue(this.handlers, this.pollerExecutor, idlePollPeriod, eventQueueStatisticHandler,
-                        this.handlerExecutor);
+                EventQueue queue = new EventQueue(this.handlers, this.pollerExecutor, eventQueueStatisticHandler, this.handlerExecutor);
                 this.queues.add(queue);
             }
         }
