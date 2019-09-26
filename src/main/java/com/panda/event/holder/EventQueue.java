@@ -108,7 +108,6 @@ public class EventQueue implements Closeable {
             }
         }
         this.isHandling = false;
-        this.poller.join();
     }
 
     private void handle(Set<EventHandler> handlers, Change<Map<String, String>> event, Executor handlerExecutor) {
