@@ -4,13 +4,13 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.panda</groupId>
+    <groupId>com.github.pandaxz.events</groupId>
     <artifactId>postgres-logical-decoding-events</artifactId>
     <version>0.0.12-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>Postgres logical decoding events</name>
-    <description>Library provide possibility to receive and handle events based on logical decoding in postgres</description>
+    <description>Library provide possibility to receive and handle events based on logical decoding in postgresql</description>
     <url>https://github.com/PandaXz/postgres-logical-decoding-events</url>
 
     <licenses>
@@ -20,6 +20,11 @@
             <distribution>repo</distribution>
         </license>
     </licenses>
+
+    <scm>
+        <url>https://github.com/PandaXz/postgres-logical-decoding-events</url>
+        <connection>scm:hg:https://github.com/PandaXz/postgres-logical-decoding-events</connection>
+    </scm>
 
     <properties>
         <postgresql.jdbc.ver>42.2.6</postgresql.jdbc.ver>
