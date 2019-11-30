@@ -23,8 +23,24 @@
 
     <scm>
         <url>https://github.com/PandaXz/postgres-logical-decoding-events</url>
-        <connection>scm:hg:https://github.com/PandaXz/postgres-logical-decoding-events</connection>
+        <connection>scm:git:https://github.com/PandaXz/postgres-logical-decoding-events</connection>
+        <developerConnection>scm:git:https://github.com/PandaXz/postgres-logical-decoding-events</developerConnection>
     </scm>
+
+    <parent>
+        <groupId>org.sonatype.oss</groupId>
+        <artifactId>oss-parent</artifactId>
+        <version>9</version>
+    </parent>
+
+    <developers>
+        <developer>
+            <id>owner</id>
+            <name>Uladzislau Belykh</name>
+            <email>uladzislau.belykh@gmail.com</email>
+            <timezone>UTC+3</timezone>
+        </developer>
+    </developers>
 
     <properties>
         <postgresql.jdbc.ver>42.2.6</postgresql.jdbc.ver>
@@ -92,14 +108,45 @@
                         </goals>
                     </execution>
                 </executions>
+                <configuration>
+                    <javadocExecutable>
+                        ${java.home}/bin/javadoc
+                    </javadocExecutable>
+                </configuration>
             </plugin>
         </plugins>
     </build>
 
-    <distributionManagement>
-        <repository>
-            <id>internal</id>
-            <url>file://${project.build.directory}/mvn-repo</url>
-        </repository>
-    </distributionManagement>
+    <profiles>
+        <profile>
+            <id>sign-artifacts</id>
+            <activation>
+                <property>
+                    <name>performRelease</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>1.6</version>
+                        <configuration>
+                            <passphrase>${gpg.passphrase}</passphrase>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
