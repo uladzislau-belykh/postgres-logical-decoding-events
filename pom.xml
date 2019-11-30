@@ -6,7 +6,7 @@
 
     <groupId>com.github.pandaxz.events</groupId>
     <artifactId>postgres-logical-decoding-events</artifactId>
-    <version>0.0.12-SNAPSHOT</version>
+    <version>0.0.12</version>
     <packaging>jar</packaging>
 
     <name>Postgres logical decoding events</name>
