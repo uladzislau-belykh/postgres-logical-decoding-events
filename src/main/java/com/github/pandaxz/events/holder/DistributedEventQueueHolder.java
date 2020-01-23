@@ -72,7 +72,7 @@ public class DistributedEventQueueHolder implements EventQueueHolder {
                 this.queues.add(queues);
                 for (EventHandler handler : this.handlers) {
                     EventQueueStatisticHandler eventQueueStatisticHandler = new EventQueueStatisticHandler(this.table, i, statisticHandler,
-                            handler.getClass().getSimpleName());
+                            handler.getHandlerName());
                     EventQueue queue = new EventQueue(handler, this.pollerExecutor, eventQueueStatisticHandler, queueLimit, countLatch);
                     queues.add(queue);
                 }

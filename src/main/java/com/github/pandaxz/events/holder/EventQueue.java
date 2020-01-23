@@ -144,6 +144,6 @@ public class EventQueue implements Closeable {
         } catch (Exception e) {
             logger.error("Error when handling event: " + event + " exception: ", e);
         }
-        this.statisticHandler.eventHandled(handler.getClass().getSimpleName(), Clock.systemUTC().millis() - start, event);
+        this.statisticHandler.eventHandled(handler.getHandlerName(), Clock.systemUTC().millis() - start, event);
     }
 }

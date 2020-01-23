@@ -27,4 +27,8 @@ import java.util.Map;
 public interface EventHandler {
 
     void handle(Change<Map<String, String>> event);
+
+    default String getHandlerName(){
+        return this.getClass().getSimpleName();
+    };
 }
