@@ -35,6 +35,8 @@ import java.util.concurrent.Executor;
  */
 public class DistributedEventQueueHolder implements EventQueueHolder {
 
+    private int queueLimit;
+    private CountLatch countLatch;
     private String table;
     private List<Set<EventQueue>> queues;
     private Set<EventHandler> handlers;
@@ -42,19 +44,23 @@ public class DistributedEventQueueHolder implements EventQueueHolder {
     private Executor pollerExecutor;
     private Integer queueCount;
 
-    public DistributedEventQueueHolder(String table, int queueCount, EventQueueResolver resolver) {
+    public DistributedEventQueueHolder(String table, int queueCount, EventQueueResolver resolver, int queueLimit, CountLatch countLatch) {
         this.table = table;
         this.handlers = new HashSet<>();
         this.resolver = resolver;
         this.queueCount = queueCount;
+        this.countLatch = countLatch;
+        this.queueLimit = queueLimit;
     }
 
-    public DistributedEventQueueHolder(String table, int queueCount, EventQueueResolver resolver, Executor pollerExecutor) {
+    public DistributedEventQueueHolder(String table, int queueCount, EventQueueResolver resolver, int queueLimit, CountLatch countLatch, Executor pollerExecutor) {
         this.table = table;
         this.handlers = new HashSet<>();
         this.resolver = resolver;
         this.pollerExecutor = pollerExecutor;
         this.queueCount = queueCount;
+        this.countLatch = countLatch;
+        this.queueLimit = queueLimit;
     }
 
     @Override
@@ -67,7 +73,7 @@ public class DistributedEventQueueHolder implements EventQueueHolder {
                 for (EventHandler handler : this.handlers) {
                     EventQueueStatisticHandler eventQueueStatisticHandler = new EventQueueStatisticHandler(this.table, i, statisticHandler,
                             handler.getClass().getSimpleName());
-                    EventQueue queue = new EventQueue(handler, this.pollerExecutor,eventQueueStatisticHandler);
+                    EventQueue queue = new EventQueue(handler, this.pollerExecutor, eventQueueStatisticHandler, queueLimit, countLatch);
                     queues.add(queue);
                 }
             }

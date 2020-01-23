@@ -18,6 +18,9 @@
 package com.github.pandaxz.events.holder;
 
 import com.github.pandaxz.events.dto.Change;
+import com.github.pandaxz.events.holder.limit.LimitObserver;
+import com.github.pandaxz.events.holder.limit.LimitObserverImpl;
+import com.github.pandaxz.events.holder.limit.NoLimitObserverImpl;
 import com.github.pandaxz.events.holder.statistic.EventQueueStatisticHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,8 +47,15 @@ public class EventQueue implements Closeable {
     private CompletableFuture poller;
     private BlockingQueue<Change<Map<String, String>>> eventQueue = new LinkedBlockingQueue<>();
     private EventQueueStatisticHandler statisticHandler;
+    private LimitObserver limitObserver;
 
-    public EventQueue(EventHandler handler, Executor pollerExecutor, EventQueueStatisticHandler eventQueueStatisticHandler) {
+    public EventQueue(EventHandler handler, Executor pollerExecutor, EventQueueStatisticHandler eventQueueStatisticHandler, int queueLimit,
+                      CountLatch countLatch) {
+        if(queueLimit > 0) {
+            this.limitObserver = new LimitObserverImpl(queueLimit, countLatch);
+        }else{
+            this.limitObserver = new NoLimitObserverImpl();
+        }
         this.statisticHandler = eventQueueStatisticHandler;
         Runnable eventHandler = () -> {
             try {
@@ -66,8 +76,13 @@ public class EventQueue implements Closeable {
         }
     }
 
-    public EventQueue(Set<EventHandler> handlers, Executor pollerExecutor, EventQueueStatisticHandler eventQueueStatisticHandler,
-                      Executor handlerExecutor) {
+    public EventQueue(Set<EventHandler> handlers, Executor pollerExecutor, EventQueueStatisticHandler eventQueueStatisticHandler, int queueLimit,
+                      CountLatch countLatch, Executor handlerExecutor) {
+        if(queueLimit > 0) {
+            this.limitObserver = new LimitObserverImpl(queueLimit, countLatch);
+        }else{
+            this.limitObserver = new NoLimitObserverImpl();
+        }
         this.statisticHandler = eventQueueStatisticHandler;
         Runnable eventHandler = () -> {
             try {
@@ -76,6 +91,7 @@ public class EventQueue implements Closeable {
                     this.statisticHandler.eventPolledFromQueue(Instant.now(Clock.systemUTC()), event);
                     handle(handlers, event, handlerExecutor);
                     this.statisticHandler.eventHandled(Instant.now(Clock.systemUTC()), event);
+                    this.limitObserver.delete();
                 }
             } catch (Exception e) {
             }
@@ -94,6 +110,7 @@ public class EventQueue implements Closeable {
         }
         Instant addTimestamp = Instant.now(Clock.systemUTC());
         this.statisticHandler.eventAddedToQueue(addTimestamp, event);
+        this.limitObserver.add();
         this.eventQueue.add(event);
     }
 

@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Uladzislau Belykh
@@ -39,15 +40,17 @@ public class EventHolder implements Closeable {
 
     private static final int DEFAULT_COUNT = 10;
     private Map<String, EventQueueHolder> holders;
+    private long delay = 30;
     private volatile boolean isReceiving = true;
-    private volatile Semaphore semaphore = new Semaphore(DEFAULT_COUNT);
+    private final Semaphore semaphore = new Semaphore(DEFAULT_COUNT);
     private EventHolderStatisticHandler statisticHandler = new SimpleEventHolderStatisticHandler();
+    private CountLatch countLatch = new CountLatch(0, 0);
 
     public EventHolder() {
         this.holders = new HashMap<>();
     }
 
-    public void add(List<Change<Map<String, String>>> events) {
+    public boolean add(List<Change<Map<String, String>>> events) {
         if (!isReceiving) {
             throw new RuntimeException("Data holder stop work");
         }
@@ -56,12 +59,18 @@ public class EventHolder implements Closeable {
         } catch (InterruptedException e) {
         }
         try {
+            if (!countLatch.await(delay, TimeUnit.SECONDS)) {
+                return false;
+            }
             for (Change<Map<String, String>> event : events) {
                 EventQueueHolder eventQueueHolder = holders.get(event.getTable());
                 if (eventQueueHolder != null) {
                     eventQueueHolder.add(event);
                 }
             }
+            return true;
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         } finally {
             semaphore.release();
         }
@@ -73,20 +82,33 @@ public class EventHolder implements Closeable {
         }
     }
 
-    public void registerCommonHolder(String table, int queueCount, EventQueueResolver resolver) {
-        holders.put(table, new CommonEventQueueHolder(table, queueCount, resolver));
+    public void registerCommonHolder(String table, int queueCount, EventQueueResolver resolver, int queueLimit) {
+        if (queueLimit < 0 || queueCount < 0) {
+            throw new IllegalArgumentException();
+        }
+        holders.put(table, new CommonEventQueueHolder(table, queueCount, resolver, queueLimit, countLatch));
     }
 
-    public void registerCommonHolder(String table, int queueCount, EventQueueResolver resolver, Executor pollerExecutor, Executor handlerExecutor) {
-        holders.put(table, new CommonEventQueueHolder(table, queueCount, resolver, pollerExecutor, handlerExecutor));
+    public void registerCommonHolder(String table, int queueCount, EventQueueResolver resolver, int queueLimit, Executor pollerExecutor,
+                                     Executor handlerExecutor) {
+        if (queueLimit < 0 || queueCount < 0) {
+            throw new IllegalArgumentException();
+        }
+        holders.put(table, new CommonEventQueueHolder(table, queueCount, resolver, queueLimit, countLatch, pollerExecutor, handlerExecutor));
     }
 
-    public void registerDistributedHolder(String table, int queueCount, EventQueueResolver resolver) {
-        holders.put(table, new CommonEventQueueHolder(table, queueCount, resolver));
+    public void registerDistributedHolder(String table, int queueCount, EventQueueResolver resolver, int queueLimit) {
+        if (queueLimit < 0 || queueCount < 0) {
+            throw new IllegalArgumentException();
+        }
+        holders.put(table, new DistributedEventQueueHolder(table, queueCount, resolver, queueLimit, countLatch));
     }
 
-    public void registerDistributedHolder(String table, int queueCount, EventQueueResolver resolver, Executor pollerExecutor) {
-        holders.put(table, new DistributedEventQueueHolder(table, queueCount, resolver, pollerExecutor));
+    public void registerDistributedHolder(String table, int queueCount, EventQueueResolver resolver, int queueLimit, Executor pollerExecutor) {
+        if (queueLimit < 0 || queueCount < 0) {
+            throw new IllegalArgumentException();
+        }
+        holders.put(table, new DistributedEventQueueHolder(table, queueCount, resolver, queueLimit, countLatch, pollerExecutor));
     }
 
     public void unregisterHolder(String table) {
@@ -94,7 +116,7 @@ public class EventHolder implements Closeable {
     }
 
     public void registerHandler(String table, EventHandler handler) {
-        holders.putIfAbsent(table, new CommonEventQueueHolder(table, 1, new SimpleEventQueueResolver()));
+        holders.putIfAbsent(table, new CommonEventQueueHolder(table, 1, new SimpleEventQueueResolver(), countLatch));
         holders.get(table).registerHandler(handler);
     }
 
@@ -108,6 +130,14 @@ public class EventHolder implements Closeable {
     public void setStatisticHandler(EventHolderStatisticHandler statisticHandler) {
         Objects.requireNonNull(statisticHandler);
         this.statisticHandler = statisticHandler;
+    }
+
+    public long getDelay() {
+        return delay;
+    }
+
+    public void setDelay(long delay) {
+        this.delay = delay;
     }
 
     @Override

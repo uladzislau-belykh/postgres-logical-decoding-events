@@ -35,6 +35,7 @@ import java.util.concurrent.Executor;
  */
 public class CommonEventQueueHolder implements EventQueueHolder {
 
+    private CountLatch countLatch;
     private String table;
     private List<EventQueue> queues;
     private Set<EventHandler> handlers;
@@ -42,21 +43,36 @@ public class CommonEventQueueHolder implements EventQueueHolder {
     private Executor pollerExecutor;
     private Executor handlerExecutor;
     private Integer queueCount;
+    private Integer queueLimit;
 
-    public CommonEventQueueHolder(String table, int queueCount, EventQueueResolver resolver) {
+    public CommonEventQueueHolder(String table, int queueCount, EventQueueResolver resolver, CountLatch countLatch) {
         this.table = table;
         this.handlers = new HashSet<>();
         this.resolver = resolver;
         this.queueCount = queueCount;
+        this.queueLimit = 0;
+        this.countLatch = countLatch;
     }
 
-    public CommonEventQueueHolder(String table, int queueCount, EventQueueResolver resolver, Executor pollerExecutor, Executor handlerExecutor) {
+    public CommonEventQueueHolder(String table, int queueCount, EventQueueResolver resolver, int queueLimit, CountLatch countLatch) {
+        this.table = table;
+        this.handlers = new HashSet<>();
+        this.resolver = resolver;
+        this.queueCount = queueCount;
+        this.queueLimit = queueLimit;
+        this.countLatch = countLatch;
+    }
+
+    public CommonEventQueueHolder(String table, int queueCount, EventQueueResolver resolver, int queueLimit, CountLatch countLatch,
+                                  Executor pollerExecutor, Executor handlerExecutor) {
         this.table = table;
         this.handlers = new HashSet<>();
         this.resolver = resolver;
         this.pollerExecutor = pollerExecutor;
         this.handlerExecutor = handlerExecutor;
         this.queueCount = queueCount;
+        this.queueLimit = queueLimit;
+        this.countLatch = countLatch;
     }
 
     @Override
@@ -65,7 +81,8 @@ public class CommonEventQueueHolder implements EventQueueHolder {
             this.queues = new ArrayList<>();
             for (int i = 0; i < this.queueCount; i++) {
                 EventQueueStatisticHandler eventQueueStatisticHandler = new EventQueueStatisticHandler(this.table, i, statisticHandler, null);
-                EventQueue queue = new EventQueue(this.handlers, this.pollerExecutor, eventQueueStatisticHandler, this.handlerExecutor);
+                EventQueue queue = new EventQueue(this.handlers, this.pollerExecutor, eventQueueStatisticHandler, queueLimit, countLatch,
+                        this.handlerExecutor);
                 this.queues.add(queue);
             }
         }

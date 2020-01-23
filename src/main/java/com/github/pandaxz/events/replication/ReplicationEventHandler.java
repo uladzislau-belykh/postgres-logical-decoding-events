@@ -31,6 +31,6 @@ public interface ReplicationEventHandler {
      *
      * @param changeEvent the change event
      */
-    void handle(ChangeEvent changeEvent);
+    boolean handle(ChangeEvent changeEvent);
 
 }

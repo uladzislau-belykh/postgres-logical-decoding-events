@@ -239,7 +239,11 @@ public class ReplicationEventProducer implements Closeable {
                 if (changes.getChanges().isEmpty()) {
                     return false;
                 }
-                replicationEventHandler.handle(changes);
+                if(!replicationEventHandler.handle(changes)){
+                    logger.trace("The handling was not succeded");
+                    replicationStream.resetUncommitted();
+                    return false;
+                }
                 statisticHandler.eventIsHandled(changes, replicationEvent.getReadTime());
             }
             LogSequenceNumber nextLsn = getNextLsn(changes);

@@ -50,8 +50,8 @@ public class SimpleReplicationEventHandler implements ReplicationEventHandler {
     }
 
     @Override
-    public void handle(ChangeEvent changeEvent) {
-        eventsHolder.add(changeEvent.getChanges().stream().map(this::convertToChangeMap).collect(Collectors.toList()));
+    public boolean handle(ChangeEvent changeEvent) {
+        return eventsHolder.add(changeEvent.getChanges().stream().map(this::convertToChangeMap).collect(Collectors.toList()));
     }
 
     private Change<Map<String, String>> convertToChangeMap(ChangeMessage changeMessage) {
