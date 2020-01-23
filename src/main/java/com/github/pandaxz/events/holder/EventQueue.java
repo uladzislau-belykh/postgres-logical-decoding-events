@@ -64,6 +64,7 @@ public class EventQueue implements Closeable {
                     this.statisticHandler.eventPolledFromQueue(Instant.now(Clock.systemUTC()), event);
                     handleEvent(event, handler);
                     this.statisticHandler.eventHandled(Instant.now(Clock.systemUTC()), event);
+                    this.limitObserver.delete();
                 }
             } catch (Exception e) {
             }
