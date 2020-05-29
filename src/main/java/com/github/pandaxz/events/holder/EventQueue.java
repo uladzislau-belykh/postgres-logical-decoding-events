@@ -30,11 +30,13 @@ import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 /**
  * @author Uladzislau Belykh
@@ -43,66 +45,65 @@ public class EventQueue implements Closeable {
     private static final Logger logger = LoggerFactory.getLogger(EventQueue.class);
 
     private volatile boolean isReceiving = true;
-    private volatile boolean isHandling = true;
-    private CompletableFuture poller;
-    private BlockingQueue<Change<Map<String, String>>> eventQueue = new LinkedBlockingQueue<>();
+    private AtomicInteger added = new AtomicInteger();
+    private ConcurrentLinkedQueue<Change<Map<String, String>>> eventQueue = new ConcurrentLinkedQueue<>();
     private EventQueueStatisticHandler statisticHandler;
     private LimitObserver limitObserver;
-
-    public EventQueue(EventHandler handler, Executor pollerExecutor, EventQueueStatisticHandler eventQueueStatisticHandler, int queueLimit,
-                      CountLatch countLatch) {
-        if(queueLimit > 0) {
-            this.limitObserver = new LimitObserverImpl(queueLimit, countLatch);
-        }else{
-            this.limitObserver = new NoLimitObserverImpl();
-        }
-        this.statisticHandler = eventQueueStatisticHandler;
-        Runnable eventHandler = () -> {
-            try {
-                while (this.isHandling) {
-                    Change<Map<String, String>> event = this.eventQueue.take();
+    private Executor executor;
+    private Consumer<Change<Map<String, String>>> eventHandler;
+    private Runnable runnable = () -> {
+        try {
+            int n = 1;
+            int handled = 0;
+            while (true) {
+                boolean polled = true;
+                for (; handled < n && polled; handled++) {
+                    Change<Map<String, String>> event = this.eventQueue.poll();
+                    if (Objects.isNull(event)) {
+                        polled = false;
+                        continue;
+                    }
                     this.statisticHandler.eventPolledFromQueue(Instant.now(Clock.systemUTC()), event);
-                    handleEvent(event, handler);
+                    this.eventHandler.accept(event);
                     this.statisticHandler.eventHandled(Instant.now(Clock.systemUTC()), event);
                     this.limitObserver.delete();
                 }
-            } catch (Exception e) {
-            }
-        };
 
-        if (pollerExecutor == null) {
-            this.poller = CompletableFuture.runAsync(eventHandler);
-        } else {
-            this.poller = CompletableFuture.runAsync(eventHandler, pollerExecutor);
+                n = added.get();
+                if (n == handled) {
+                    n = added.addAndGet(-handled);
+                    if (n == 0) {
+                        return;
+                    }
+                    handled = 0;
+                }
+            }
+        } catch (Exception e) {
         }
+    };
+
+    public EventQueue(EventHandler handler, Executor pollerExecutor, EventQueueStatisticHandler eventQueueStatisticHandler, int queueLimit,
+                      CountLatch countLatch) {
+        if (queueLimit > 0) {
+            this.limitObserver = new LimitObserverImpl(queueLimit, countLatch);
+        } else {
+            this.limitObserver = new NoLimitObserverImpl();
+        }
+        this.statisticHandler = eventQueueStatisticHandler;
+        this.eventHandler = (event) -> handleEvent(event, handler);
+        this.executor = pollerExecutor;
     }
 
     public EventQueue(Set<EventHandler> handlers, Executor pollerExecutor, EventQueueStatisticHandler eventQueueStatisticHandler, int queueLimit,
                       CountLatch countLatch, Executor handlerExecutor) {
-        if(queueLimit > 0) {
+        if (queueLimit > 0) {
             this.limitObserver = new LimitObserverImpl(queueLimit, countLatch);
-        }else{
+        } else {
             this.limitObserver = new NoLimitObserverImpl();
         }
         this.statisticHandler = eventQueueStatisticHandler;
-        Runnable eventHandler = () -> {
-            try {
-                while (this.isHandling) {
-                    Change<Map<String, String>> event = this.eventQueue.take();
-                    this.statisticHandler.eventPolledFromQueue(Instant.now(Clock.systemUTC()), event);
-                    handle(handlers, event, handlerExecutor);
-                    this.statisticHandler.eventHandled(Instant.now(Clock.systemUTC()), event);
-                    this.limitObserver.delete();
-                }
-            } catch (Exception e) {
-            }
-        };
-
-        if (pollerExecutor == null) {
-            this.poller = CompletableFuture.runAsync(eventHandler);
-        } else {
-            this.poller = CompletableFuture.runAsync(eventHandler, pollerExecutor);
-        }
+        this.eventHandler = (event) -> handleEvent(handlers, event, handlerExecutor);
+        this.executor = pollerExecutor;
     }
 
     public void add(Change<Map<String, String>> event) {
@@ -113,6 +114,17 @@ public class EventQueue implements Closeable {
         this.statisticHandler.eventAddedToQueue(addTimestamp, event);
         this.limitObserver.add();
         this.eventQueue.add(event);
+        if (added.getAndIncrement() == 0) {
+            handle();
+        }
+    }
+
+    private void handle() {
+        if (Objects.isNull(this.executor)) {
+            CompletableFuture.runAsync(runnable);
+        } else {
+            CompletableFuture.runAsync(runnable, this.executor);
+        }
     }
 
     @Override
@@ -125,10 +137,9 @@ public class EventQueue implements Closeable {
                 logger.info("Event queue is interrupted, probably you lost events");
             }
         }
-        this.isHandling = false;
     }
 
-    private void handle(Set<EventHandler> handlers, Change<Map<String, String>> event, Executor handlerExecutor) {
+    private void handleEvent(Set<EventHandler> handlers, Change<Map<String, String>> event, Executor handlerExecutor) {
         CompletableFuture.allOf(handlers.stream()
                 .map(handler -> {
                     Runnable task = () -> handleEvent(event, handler);
