@@ -66,25 +66,26 @@ public class ReplicationEventProducer implements Closeable {
      *
      * @param idlePollTimeout the idlePollTimeout
      */
-    public void start(Long idlePollTimeout) {
-        this.start(idlePollTimeout, null);
+    public void start(Long idlePollTimeout, boolean isTemporarySlot) {
+        this.start(idlePollTimeout, null, isTemporarySlot);
     }
 
     /**
      * Start producing with provided idle poll timeout in thread from executor.
      *
-     * @param idlePollTimeout  the idlePollTimeout
-     * @param executor the executor
+     * @param idlePollTimeout the idlePollTimeout
+     * @param executor        the executor
+     * @param isTemporarySlot is slot should be created temporary
      */
-    public void start(Long idlePollTimeout, Executor executor) {
+    public void start(Long idlePollTimeout, Executor executor, boolean isTemporarySlot) {
         if (this.producer != null) {
             throw new RuntimeException("Producer is running");
         }
         this.producing = true;
         if (executor == null) {
-            this.producer = CompletableFuture.runAsync(() -> this.run(idlePollTimeout));
+            this.producer = CompletableFuture.runAsync(() -> this.run(idlePollTimeout, isTemporarySlot));
         } else {
-            this.producer = CompletableFuture.runAsync(() -> this.run(idlePollTimeout), executor);
+            this.producer = CompletableFuture.runAsync(() -> this.run(idlePollTimeout, isTemporarySlot), executor);
         }
         statisticHandler.producerIsRunning();
     }
@@ -135,8 +136,8 @@ public class ReplicationEventProducer implements Closeable {
      * @return the boolean
      * @throws SQLException the sql exception
      */
-    public boolean createSlot() throws SQLException {
-        return replicationStream.createSlot();
+    public boolean createSlot(boolean isTemporary) throws SQLException {
+        return replicationStream.createSlot(isTemporary);
     }
 
     /**
@@ -200,10 +201,10 @@ public class ReplicationEventProducer implements Closeable {
         stop();
     }
 
-    private void run(Long idlePollTimeout) {
+    private void run(Long idlePollTimeout, boolean isTemporarySlot) {
         try {
             if (!slotExists()) {
-                createSlot();
+                createSlot(isTemporarySlot);
             }
         } catch (SQLException e) {
             logger.error("Cannot create or check slot cause ", e);
@@ -239,7 +240,7 @@ public class ReplicationEventProducer implements Closeable {
                 if (changes.getChanges().isEmpty()) {
                     return false;
                 }
-                if(!replicationEventHandler.handle(changes)){
+                if (!replicationEventHandler.handle(changes)) {
                     logger.trace("The handling was not succeded");
                     replicationStream.resetUncommitted();
                     return false;

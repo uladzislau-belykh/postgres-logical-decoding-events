@@ -20,6 +20,7 @@ package com.github.pandaxz.events.replication;
 import org.postgresql.PGConnection;
 import org.postgresql.replication.LogSequenceNumber;
 import org.postgresql.replication.PGReplicationStream;
+import org.postgresql.replication.fluent.logical.ChainedLogicalCreateSlotBuilder;
 import org.postgresql.replication.fluent.logical.ChainedLogicalStreamBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -143,7 +144,7 @@ public class ReplicationStream implements Closeable {
             replicationConnectionSource.invalidateConnection();
             throw e;
         }
-        logger.debug(slotName+ " - slot is dropped");
+        logger.debug(slotName + " - slot is dropped");
         return true;
 
     }
@@ -154,21 +155,24 @@ public class ReplicationStream implements Closeable {
      * @return boolean
      * @throws SQLException the sql exception
      */
-    public boolean createSlot() throws SQLException {
+    public boolean createSlot(boolean isTemporary) throws SQLException {
         if (slotExists()) {
             return true;
         }
         PGConnection connection = replicationConnectionSource.getConnection();
         try {
-            connection.getReplicationAPI().createReplicationSlot().logical()
+            ChainedLogicalCreateSlotBuilder builder = connection.getReplicationAPI().createReplicationSlot().logical()
                     .withSlotName(slotName)
-                    .withOutputPlugin(OUTPUT_PLUGIN)
-                    .make();
+                    .withOutputPlugin(OUTPUT_PLUGIN);
+            if (isTemporary) {
+                builder.withTemporaryOption();
+            }
+            builder.make();
         } catch (SQLException e) {
             replicationConnectionSource.invalidateConnection();
             throw e;
         }
-        logger.debug(slotName+ " - slot is created");
+        logger.debug(slotName + " - slot is created");
         return true;
     }
 
