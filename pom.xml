@@ -41,7 +41,7 @@
     </developers>
 
     <properties>
-        <postgresql.jdbc.ver>42.2.6</postgresql.jdbc.ver>
+        <postgresql.jdbc.ver>42.3.3</postgresql.jdbc.ver>
         <slf4j.ver>1.7.26</slf4j.ver>
         <java.version>11</java.version>
     </properties>
